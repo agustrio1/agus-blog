@@ -1,0 +1,162 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                    String    @id @default(cuid())
+  name                  String
+  email                 String
+  password              String
+  role                  Role
+  refreshToken          String?
+  refreshTokenExpiresAt DateTime?
+  resetToken            String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @default(now())
+
+  posts Post[]
+  comments Comment[]
+  like Like[]
+  premiumContent PremiumContent[]
+  payments Payment[]
+
+  @@map("users")
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  posts Post[]
+  premiumContent PremiumContent[]
+
+  @@map("categories")
+}
+
+model Post {
+  id         String   @id @default(cuid())
+  slug       String
+  categoryId String
+  userId     String
+  title      String
+  content    String
+  images     Image[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now())
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  comments Comment[]
+  likes Like[]
+
+  @@map("posts")
+}
+
+model Image {
+  id               String   @id @default(cuid())
+  image            String
+  postId           String?
+  premiumContentId String?
+  post             Post?     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  premiumContent   PremiumContent? @relation(fields: [premiumContentId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @default(now())
+
+  @@map("images")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  parentId  String?
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parent   Comment?  @relation("ParentChild", fields: [parentId], references: [id], onDelete: Cascade)
+  children Comment[] @relation("ParentChild")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  type      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("likes")
+}
+
+model Series {
+  id            String           @id @default(cuid())
+  title         String
+  description   String
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @default(now())
+
+  premiumContents PremiumContent[]
+
+  @@map("series")
+}
+
+model PremiumContent {
+  id            String   @id @default(cuid())
+  userId        String
+  categoryId    String?
+  seriesId      String?
+  title         String?
+  content       String?
+  video         String?
+  images        Image[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now())
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category      Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  series        Series?  @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  @@map("premium_contents")
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  userId    String
+  amount    Float
+  status    PaymentStatus
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+enum PaymentStatus {
+  pending
+  completed
+  failed
+}
+
+enum Role {
+  admin
+  author
+  reviewer
+  viewer
+}
